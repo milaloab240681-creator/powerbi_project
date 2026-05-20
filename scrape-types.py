@@ -1,39 +1,38 @@
 import requests
-from bs4 import BeautifulSoup
 
 def get_pokemon_types():
-    # URL de la sección de tipos en la Fandom de Pokémon
-    url = "https://pokemon.fandom.com/wiki/Types"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    # Usamos la PokéAPI oficial, que no bloquea las GitHub Actions
+    url = "https://pokeapi.co/api/v2/type"
     
-    print("Conectando con pokemon.fandom.com...")
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code != 200:
-        print(f"Error al acceder a la web: {response.status_code}")
-        return
+    print("Conectando de forma segura con pokeapi.co...")
+    try:
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code != 200:
+            print(f"Error al acceder a la API: {response.status_code}")
+            return
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Buscamos los enlaces que apuntan a los tipos elementales
-    # En la wiki suelen estar estructurados dentro de tablas de clases específicas o elementos de lista
-    types = set()
-    
-    # Estrategia: Buscar elementos que contengan "/wiki/Type" en sus enlaces de manera limpia
-    for link in soup.find_all('a', href=True):
-        href = link['href']
-        # Filtramos para quedarnos solo con los tipos principales (ej: /wiki/Water_type)
-        if "/wiki/" in href and "_type" in href.lower() and not any(x in href.lower() for x in ["category:", "user:", "talk:"]):
-            # Extraemos el nombre del tipo limpiando el formato de la URL
-            type_name = href.split('/')[-1].replace('_type', '').replace('_Type', '')
-            if type_name and type_name.isalpha():
-                types.add(type_name.capitalize())
+        data = response.json()
+        types = set()
+        
+        # Recorremos los resultados que nos devuelve el JSON de la API
+        for result in data.get("results", []):
+            name = result.get("name")
+            # Filtramos "unknown" y "shadow" que son tipos internos/especiales del juego
+            if name and name not in ["unknown", "shadow"]:
+                types.add(name.capitalize())
 
-    print("\n=== TIPOS DE POKÉMON ENCONTRADOS ===")
-    for p_type in sorted(types):
-        print(f"- {p_type}")
+        # Guardamos los resultados en el archivo para el repositorio
+        output_file = "pokemon_types.txt"
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write("=== TIPOS DE POKÉMON ENCONTRADOS (OFICIALES) ===\n")
+            for p_type in sorted(types):
+                f.write(f"- {p_type}\n")
+                
+        print(f"¡Éxito! Se han extraído {len(types)} tipos y se han guardado en {output_file}")
+
+    except Exception as e:
+        print(f"Ocurrió un error durante la consulta: {e}")
 
 if __name__ == "__main__":
     get_pokemon_types()
