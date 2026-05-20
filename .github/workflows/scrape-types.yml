@@ -30,7 +30,7 @@ jobs:
     - name: Ejecutar script de Scraping
       run: |
         source venv/bin/activate
-        python scrape_types.py
+        python scrape-types.py
 
     - name: Guardar cambios en el repositorio
       run: |
