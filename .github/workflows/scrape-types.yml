@@ -1,35 +1,47 @@
 name: Extractor de Tipos Pokemon
 
-# Configurado para ejecutarse únicamente de forma manual
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-run:
-    # Creamos el entorno virtual basado en la última versión estable de Ubuntu
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Descarga el código del repositorio en el contenedor de Ubuntu
     - name: Descargar código del repositorio
       uses: actions/checkout@v4
 
-    # 2. Configura el entorno de Python
     - name: Configurar Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    # 3. Prepara el entorno virtual e instala dependencias de scraping
+    # Ahora solo instalamos 'requests' ya que manejamos JSON nativo
     - name: Instalar dependencias
       run: |
         python -m venv venv
         source venv/bin/activate
         pip install --upgrade pip
-        pip install requests beautifulsoup4
+        pip install requests
 
-    # 4. Ejecuta el script de Python dentro del entorno virtual
     - name: Ejecutar script de Scraping
       run: |
         source venv/bin/activate
-        python scrape-types.py
+        python scrape_types.py
+
+    - name: Guardar cambios en el repositorio
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        git add pokemon_types.txt
+        
+        if git diff --staged --quiet; then
+          echo "No hay cambios nuevos en los tipos de Pokémon."
+        else
+          git commit -m "Auto: Actualizar lista de tipos de Pokémon"
+          git push
+        fi
